@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:modal_progress_hud_nsn/modal_progress_hud_nsn.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,46 +13,52 @@ class UploadImageScreen extends StatefulWidget {
 }
 
 class _UploadImageScreenState extends State<UploadImageScreen> {
-  File? image;
+ List<XFile?>? images = []; // Store XFile objects directly
   final _picker = ImagePicker();
   bool showSpinner = false;
 
-  Future getImage() async {
-    final pickFile = await _picker.pickImage(source: ImageSource.gallery);
-    if (pickFile != null) {
-      image = File(pickFile.path);
+
+Future getImage() async {
+    final List<XFile?>? pickedImages = await _picker.pickMultiImage();
+
+    if (pickedImages != null) {
+      images = pickedImages; // Directly assign the list of XFile objects
       setState(() {});
     } else {
       print("No Image Selected");
     }
   }
 
-Future<void> uploadImage() async {
-  showSpinner = true;
-  if (mounted) {
-    setState(() {});
-  }
 
-  if (image != null) {
-    var request = http.MultipartRequest('POST', Uri.parse('https://fakestoreapi.com/products'));
-    request.fields['title'] = 'Static title';
-    var multipart = await http.MultipartFile.fromPath('image', image!.path);
-    request.files.add(multipart);
-    var response = await request.send();
 
-    if (response.statusCode == 200) {
-      showSpinner = false;
-      if (mounted) {
-        setState(() {});
+ Future<void> uploadImage() async {
+    if (images != null) {
+      for (XFile? singleImage in images!) { // Iterate over XFile objects
+        if (singleImage != null) {
+          var request = http.MultipartRequest(
+            'POST', Uri.parse('https://fakestoreapi.com/products'));
+          request.fields['title'] = 'Static title';
+          var multipart = await http.MultipartFile.fromPath(
+            'image', singleImage.path); // Use imageFile.path
+          request.files.add(multipart);
+
+          var response = await request.send();
+          print(request);
+
+          if (response.statusCode == 200) {
+              print("status code is");
+            print(response.statusCode);
+            print("Image Uploaded Successfully");
+          
+          } else {
+            print("Upload failed for image: ${singleImage.path}");
+          }
+        }
       }
-      print("Image Uploaded");
     } else {
-      print("Upload failed");
+      print("Please select an image first");
     }
-  } else {
-    print("Please select an image first");
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -61,42 +68,38 @@ Future<void> uploadImage() async {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // TextButton(onPressed: () {
-          //   _pickImageFromGallary();
-          // }, child: Text("Pick Image from gallary")),
-          // TextButton(onPressed: () {}, child: Text("Pick Image from camera")),
-          // SizedBox(height: 20),
-          // _selectedImage!=null? Image.file(_selectedImage!): Text("Select an image")
-
           GestureDetector(
-            onTap: (){
-              getImage();
-              
-            },
-            child: Container(
-                child: image == null
-                    ? Center(
-                        child: Text('Pick Image'),
-                      )
-                    : Container(
-                        child: Center(
-                          child: Image.file(
-                            File(image!.path).absolute,
-                            height: 100,
-                            width: 100,
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      )),
-          ),
+              onTap: () {
+                getImage();
+              },
+              child: Text('select image')),
+          Container(
+              child: images == null
+                  ? Center(
+                      child: Text('Pick Image'),
+                    )
+                  : GridView.builder(
+                      shrinkWrap: true,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3),
+                      itemCount: images!.length,
+                      itemBuilder: (context, index) {
+                         XFile? singleImage = images![index];
+                        if (singleImage != null) {
+                            return Image.file(File(singleImage.path),
+                              height: 100, width: 100, fit: BoxFit.cover);
+                        } else {
+                          return Container();
+                        }
+                      },
+                    )),
           SizedBox(
             height: 150,
           ),
           ElevatedButton(
             onPressed: () {
               uploadImage();
-              
-             
+
               print("Upload pressed");
             },
             child: Text("Upload"),
@@ -105,13 +108,6 @@ Future<void> uploadImage() async {
       ),
     );
   }
-  // Future _pickImageFromGallary() async{
-  //  final pickedImage= await ImagePicker().pickImage(source: ImageSource.gallery);
-  //  if(pickedImage==null)return;
-  //  Text(pickedImage.name);
-  //  setState(() {
-  //    _selectedImage=File(pickedImage.name);
-  //  });
-
-  // }
 }
+
+

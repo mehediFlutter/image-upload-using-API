@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_upload/multiple_from_nate.dart';
+import 'package:image_upload/pilot_image_upload.dart/pilot_image_upload.dart';
 import 'package:image_upload/upload_image_screen.dart';
 
 void main() {
@@ -14,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       
-      home: UploadImageScreen()
+      home: MultiPleImage()
     );
   }
 }
